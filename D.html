@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doodle Jump</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(to bottom, #87CEEB, #98FB98);
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        #gameCanvas {
+            border: 2px solid #333;
+            background: skyblue;
+            max-width: 100%;
+            height: auto;
+        }
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            color: #333;
+            text-align: center;
+        }
+        #startScreen, #gameOverScreen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        @media (max-width: 600px) {
+            #score {
+                font-size: 18px;
+            }
+            #startScreen, #gameOverScreen {
+                padding: 15px;
+            }
+            button {
+                font-size: 16px;
+                padding: 8px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+    <div id="score">Score: 0</div>
+    <div id="startScreen">
+        <h1>Doodle Jump</h1>
+        <p>Click or tap to jump! Avoid falling off the platforms.</p>
+        <button id="startButton">Start Game</button>
+    </div>
+    <div id="gameOverScreen" style="display: none;">
+        <h1>Game Over</h1>
+        <p id="finalScore"></p>
+        <button id="restartButton">Restart</button>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const startScreen = document.getElementById('startScreen');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const startButton = document.getElementById('startButton');
+        const restartButton = document.getElementById('restartButton');
+        const finalScoreElement = document.getElementById('finalScore');
+
+        let width = canvas.width;
+        let height = canvas.height;
+        let player = { x: width / 2, y: height - 50, vy: 0, size: 20 };
+        let platforms = [];
+        let score = 0;
+        let gameRunning = false;
+        let gravity = 0.5;
+        let jumpStrength = -12;
+
+        // Generate initial platforms
+        function generatePlatforms() {
+            platforms = [];
+            for (let i = 0; i < 10; i++) {
+                platforms.push({
+                    x: Math.random() * (width - 100),
+                    y: height - i * 60 - 100,
+                    width: 80,
+                    height: 10
+                });
+            }
+        }
+
+        // Draw player
+        function drawPlayer() {
+            ctx.fillStyle = '#FF4500';
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
+            ctx.fill();
+            // Simple eyes
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(player.x - 5, player.y - 5, 2, 0, Math.PI * 2);
+            ctx.arc(player.x + 5, player.y - 5, 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Draw platforms
+        function drawPlatforms() {
+            ctx.fillStyle = '#8B4513';
+            platforms.forEach(platform => {
+                ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+            });
+        }
+
+        // Update game
+        function update() {
+            if (!gameRunning) return;
+
+            player.vy += gravity;
+            player.y += player.vy;
+
+            // Check collision with platforms
+            platforms.forEach(platform => {
+                if (player.y + player.size >= platform.y &&
+                    player.y + player.size <= platform.y + platform.height + 5 &&
+                    player.vy > 0 &&
+                    player.x >= platform.x &&
+                    player.x <= platform.x + platform.width) {
+                    player.vy = jumpStrength;
+                }
+            });
+
+            // Move platforms when player goes up
+            if (player.y < height / 2) {
+                const diff = height / 2 - player.y;
+                player.y = height / 2;
+                platforms.forEach(platform => {
+                    platform.y += diff;
+                });
+                score += Math.floor(diff / 10);
+            }
+
+            // Remove off-screen platforms and add new ones
+            platforms = platforms.filter(platform => platform.y < height);
+            while (platforms.length < 10) {
+                platforms.push({
+                    x: Math.random() * (width - 100),
+                    y: platforms[platforms.length - 1].y - 60,
+                    width: 80,
+                    height: 10
+                });
+            }
+
+            // Check game over
+            if (player.y > height + 50) {
+                gameRunning = false;
+                finalScoreElement.textContent = `Final Score: ${score}`;
+                gameOverScreen.style.display = 'block';
+            }
+
+            scoreElement.textContent = `Score: ${score}`;
+        }
+
+        // Draw everything
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+            drawPlatforms();
+            drawPlayer();
+        }
+
+        // Game loop
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Handle jump
+        function jump() {
+            if (gameRunning && player.vy > 0) {
+                player.vy = jumpStrength;
+            }
+        }
+
+        // Start game
+        function startGame() {
+            player = { x: width / 2, y: height - 50, vy: 0, size: 20 };
+            score = 0;
+            generatePlatforms();
+            gameRunning = true;
+            startScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+        }
+
+        // Event listeners
+        canvas.addEventListener('click', jump);
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                jump();
+            }
+        });
+
+        startButton.addEventListener('click', startGame);
+        restartButton.addEventListener('click', startGame);
+
+        // Resize canvas for responsiveness
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const aspectRatio = 400 / 600;
+            const newWidth = Math.min(container.clientWidth - 20, 400);
+            const newHeight = newWidth / aspectRatio;
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+            width = canvas.width;
+            height = canvas.height;
+            if (gameRunning) generatePlatforms();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        gameLoop();
+    </script>
+</body>
+</html>

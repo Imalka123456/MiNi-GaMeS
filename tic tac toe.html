@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe vs Computer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 5px;
+            width: min(300px, 90vw);
+            height: min(300px, 90vw);
+            margin-bottom: 20px;
+        }
+        .cell {
+            background-color: #fff;
+            border: 2px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .cell:hover {
+            background-color: #e0e0e0;
+        }
+        .cell.disabled {
+            cursor: not-allowed;
+        }
+        .cell.disabled:hover {
+            background-color: #fff;
+        }
+        .message {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tic-Tac-Toe vs Computer</h1>
+    <div class="message" id="message">Your turn! Click a cell to place X.</div>
+    <div class="board" id="board">
+        <div class="cell" data-index="0"></div>
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div>
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div>
+        <div class="cell" data-index="8"></div>
+    </div>
+    <button id="reset">Reset Game</button>
+
+    <script>
+        const board = document.getElementById('board');
+        const cells = document.querySelectorAll('.cell');
+        const message = document.getElementById('message');
+        const resetButton = document.getElementById('reset');
+        let gameBoard = Array(9).fill(null);
+        let isPlayerTurn = true;
+        let gameOver = false;
+
+        const winningCombinations = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+
+        function checkWinner() {
+            for (const combo of winningCombinations) {
+                const [a, b, c] = combo;
+                if (gameBoard[a] && gameBoard[a] === gameBoard[b] && gameBoard[a] === gameBoard[c]) {
+                    return gameBoard[a];
+                }
+            }
+            return gameBoard.every(cell => cell !== null) ? 'draw' : null;
+        }
+
+        function computerMove() {
+            const availableCells = gameBoard.map((cell, index) => cell === null ? index : null).filter(index => index !== null);
+            if (availableCells.length > 0) {
+                const randomIndex = availableCells[Math.floor(Math.random() * availableCells.length)];
+                gameBoard[randomIndex] = 'O';
+                cells[randomIndex].textContent = 'O';
+                cells[randomIndex].classList.add('disabled');
+                const winner = checkWinner();
+                if (winner) {
+                    gameOver = true;
+                    message.textContent = winner === 'draw' ? "It's a draw!" : "Computer wins!";
+                } else {
+                    isPlayerTurn = true;
+                    message.textContent = "Your turn! Click a cell to place X.";
+                }
+            }
+        }
+
+        cells.forEach(cell => {
+            cell.addEventListener('click', () => {
+                if (gameOver || !isPlayerTurn) return;
+                const index = parseInt(cell.dataset.index);
+                if (gameBoard[index] === null) {
+                    gameBoard[index] = 'X';
+                    cell.textContent = 'X';
+                    cell.classList.add('disabled');
+                    const winner = checkWinner();
+                    if (winner) {
+                        gameOver = true;
+                        message.textContent = winner === 'draw' ? "It's a draw!" : "You win!";
+                    } else {
+                        isPlayerTurn = false;
+                        message.textContent = "Computer's turn...";
+                        setTimeout(computerMove, 500); // Delay for computer move
+                    }
+                }
+            });
+        });
+
+        resetButton.addEventListener('click', () => {
+            gameBoard.fill(null);
+            cells.forEach(cell => {
+                cell.textContent = '';
+                cell.classList.remove('disabled');
+            });
+            isPlayerTurn = true;
+            gameOver = false;
+            message.textContent = "Your turn! Click a cell to place X.";
+        });
+    </script>
+</body>
+</html>
